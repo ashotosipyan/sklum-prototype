@@ -1,0 +1,8 @@
+{
+  "name": "@sklum/analyze",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "affinity": "tsx src/affinity.ts", "funnel": "tsx src/funnel.ts" },
+  "dependencies": { "@sklum/events": "*" }
+}

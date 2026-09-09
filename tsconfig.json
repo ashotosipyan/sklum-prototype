@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/events" },
+    { "path": "./services/stubs" },
+    { "path": "./services/bff" },
+    { "path": "./services/collector" },
+    { "path": "./tools/analyze" }
+  ]
+}
