@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "workspaces": [
+    "apps/*",
     "packages/*",
     "services/*",
     "tools/*"
@@ -11,7 +12,9 @@
   "scripts": {
     "stubs": "npm run dev --workspace @sklum/stubs",
     "typecheck": "tsc --build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "bff": "npm run dev --workspace @sklum/bff",
+    "mobile": "npm run start --workspace @sklum/mobile"
   },
   "devDependencies": {
     "@types/node": "^22.20.2",
