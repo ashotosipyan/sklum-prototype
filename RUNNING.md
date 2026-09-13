@@ -20,12 +20,20 @@ npm install
 
 ## 2. Start the backend
 
-Two terminals:
+Either Docker (no Node version concerns):
+
+```bash
+docker compose up --build
+```
+
+Or directly, in two terminals:
 
 ```bash
 npm run stubs     # :4000 — fake commerce core, orders, delivery promise
 npm run bff       # :4100 — /v1/feed
 ```
+
+Both expose the same ports, so the app and the curl commands below work either way.
 
 Verify:
 
