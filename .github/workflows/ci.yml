@@ -2,6 +2,7 @@ name: ci
 on:
   push: { branches: [main] }
   pull_request:
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -10,5 +11,15 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm test --if-present
+      - name: Dependency boundaries
+        run: npm run check:boundaries
+      - name: Typecheck (services, tests, mobile)
+        run: npm run typecheck
+      - name: Event correctness and BFF degradation tests
+        run: npm test
+      - name: Mobile bundles for both platforms
+        working-directory: apps/mobile
+        run: |
+          npx expo export --platform ios --output-dir /tmp/export-ios
+          npx expo export --platform android --output-dir /tmp/export-android
+        env: { CI: '1', EXPO_NO_TELEMETRY: '1' }

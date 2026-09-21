@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "scripts": { "affinity": "tsx src/affinity.ts", "funnel": "tsx src/funnel.ts" },
-  "dependencies": { "@sklum/events": "*" }
+  "scripts": {
+    "report": "tsx src/report.ts"
+  },
+  "dependencies": {
+    "@sklum/events": "*",
+    "better-sqlite3": "^13.0.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0"
+  }
 }
