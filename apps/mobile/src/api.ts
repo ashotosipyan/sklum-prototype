@@ -1,20 +1,14 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { Platform } from 'react-native';
-
-/**
- * The iOS simulator reaches the host machine on localhost; the Android emulator
- * needs 10.0.2.2. On a physical device over a dev build this must be the LAN IP
- * of the machine running the BFF — set EXPO_PUBLIC_BFF_URL.
- */
-const HOST =
-  process.env.EXPO_PUBLIC_BFF_URL ??
-  (Platform.OS === 'android' ? 'http://10.0.2.2:4100' : 'http://localhost:4100');
+import { BFF_URL } from './config';
+import type { RootState } from './store';
+import { tracker } from './tracking';
 
 export type FeedItem = {
   id: string;
   type: 'order_status' | 'saved' | 'product' | 'inspiration';
   position: number;
   title: string;
+  category?: string;
   image?: string;
   price_cents?: number;
   status?: string;
@@ -37,9 +31,13 @@ export type FeedResponse = {
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({
-    baseUrl: HOST,
-    prepareHeaders: (headers) => {
-      headers.set('x-customer-id', 'cust_1');
+    baseUrl: BFF_URL,
+    prepareHeaders: (headers, { getState }) => {
+      const customerId = (getState() as RootState).session.customerId;
+      if (customerId) headers.set('x-customer-id', customerId);
+      // Read from the tracker, not storage: it is the single source of the
+      // current anonymous identity, including right after a sign-out rotation.
+      headers.set('x-anonymous-id', tracker.getIdentity().anonymous_id);
       return headers;
     },
     timeout: 5000,

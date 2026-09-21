@@ -10,16 +10,25 @@
     "tools/*"
   ],
   "scripts": {
+    "dev": "node scripts/dev.mjs",
     "stubs": "npm run dev --workspace @sklum/stubs",
-    "typecheck": "tsc --build",
-    "test": "vitest run",
+    "collector": "npm run dev --workspace @sklum/collector",
     "bff": "npm run dev --workspace @sklum/bff",
-    "mobile": "npm run start --workspace @sklum/mobile"
+    "mobile": "npm run start --workspace @sklum/mobile",
+    "report": "npm run report --workspace @sklum/analyze",
+    "test": "vitest run",
+    "typecheck": "tsc --build && tsc -p tests && npm run typecheck --workspace @sklum/mobile",
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "verify": "npm run check:boundaries && npm run typecheck && npm test"
   },
   "devDependencies": {
     "@types/node": "^22.20.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
+  },
+  "overrides": {
+    "react": "19.2.3",
+    "react-native": "0.86.3"
   }
 }
