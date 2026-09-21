@@ -3,8 +3,10 @@ dist/
 *.tsbuildinfo
 .env
 .env.local
+# SQLite and its WAL sidecars — captured events never belong in the repo
 *.sqlite
-*.sqlite-journal
+*.sqlite-*
+services/collector/data/
 .expo/
 coverage/
 .DS_Store
