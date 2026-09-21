@@ -55,6 +55,8 @@ export const payloads = {
     item_id: z.string().min(1),
     item_type: z.enum(ITEM_TYPES),
     position: z.number().int().nonnegative(),
+    /** Carried on the event so affinity can be computed without a catalogue join. */
+    category: z.string().min(1).optional(),
   }),
 
   item_saved: z.object({
@@ -89,6 +91,9 @@ export const payloads = {
 } as const;
 
 export type EventName = keyof typeof payloads;
+
+/** What a caller passes to track() — defaults not yet applied. */
+export type PayloadInput<N extends EventName> = z.input<(typeof payloads)[N]>;
 export const EVENT_NAMES = Object.keys(payloads) as EventName[];
 
 /** Discriminated union of every valid event. */
@@ -111,10 +116,33 @@ export type SklumEvent = {
   };
 }[EventName];
 
-export const batchSchema = z.object({
+/**
+ * The batch envelope is validated separately from the events inside it. One
+ * malformed event must not cost the other nineteen in the batch their delivery,
+ * so the collector validates events individually and reports per-event results.
+ */
+export const batchEnvelopeSchema = z.object({
   sent_at: z.string().datetime(),
-  events: z.array(eventSchema).min(1).max(100),
+  events: z.array(z.unknown()).min(1).max(100),
+  /** Events the client discarded under backpressure since its last acknowledged batch. */
+  client_dropped: z.number().int().nonnegative().optional(),
 });
+
+export type Batch = { sent_at: string; events: SklumEvent[]; client_dropped?: number };
+
+/**
+ * Rules the type system cannot express. Shared, so the device refuses to enqueue
+ * what the collector would reject — a rejected event is an event lost.
+ */
+export function semanticIssue(event: SklumEvent): string | null {
+  if (event.event_name === 'identity_resolved') {
+    if (!event.customer_id) return 'identity_resolved requires customer_id';
+    if (event.payload.previous_anonymous_id !== event.anonymous_id) {
+      return 'identity_resolved must link the anonymous_id it was emitted from';
+    }
+  }
+  return null;
+}
 
 /**
  * UUIDv7 — time-ordered, so event_id sorts by creation and gives the warehouse a

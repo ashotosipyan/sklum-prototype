@@ -1,4 +1,6 @@
-const CORE_BASE = process.env.CORE_BASE_URL ?? 'http://localhost:4000';
+/** Read lazily so tests and containers can point the BFF elsewhere without a rebuild. */
+const coreBase = () => process.env.CORE_BASE_URL ?? 'http://localhost:4000';
+const collectorBase = () => process.env.COLLECTOR_URL ?? 'http://localhost:4200';
 
 /**
  * Per-source budget. The feed has a ~400ms p95 target end to end, so no single
@@ -8,7 +10,14 @@ const CORE_BASE = process.env.CORE_BASE_URL ?? 'http://localhost:4000';
  */
 export const SOURCE_BUDGET_MS = 300;
 
-export type SourceName = 'catalogue' | 'orders' | 'promise';
+/**
+ * Personalisation gets a tighter budget than commerce data. If affinity is slow
+ * the right answer is an unpersonalised feed now, not a personalised one late —
+ * the customer cannot tell the difference, but they can tell a slow screen.
+ */
+export const AFFINITY_BUDGET_MS = 150;
+
+export type SourceName = 'catalogue' | 'orders' | 'promise' | 'affinity';
 
 export type SourceResult<T> =
   | { ok: true; source: SourceName; data: T; ms: number }
@@ -16,14 +25,14 @@ export type SourceResult<T> =
 
 async function call<T>(
   source: SourceName,
-  path: string,
+  url: string,
   budgetMs = SOURCE_BUDGET_MS,
 ): Promise<SourceResult<T>> {
   const started = Date.now();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), budgetMs);
   try {
-    const res = await fetch(`${CORE_BASE}${path}`, { signal: controller.signal });
+    const res = await fetch(url, { signal: controller.signal });
     if (!res.ok) {
       return { ok: false, source, reason: 'error', ms: Date.now() - started };
     }
@@ -61,11 +70,20 @@ export type Promise_ = {
   source: 'live' | 'cached' | 'fallback';
 };
 
+export type AffinityResponse = { affinity: Record<string, number> };
+
 export const upstream = {
   products: (limit: number) =>
-    call<{ products: Product[] }>('catalogue', `/catalogue/products?limit=${limit}`),
-  orders: (customerId: string) => call<{ orders: Order[] }>('orders', `/orders/${customerId}`),
-  promise: (sku: string) => call<Promise_>('promise', `/promise/${sku}`),
+    call<{ products: Product[] }>('catalogue', `${coreBase()}/catalogue/products?limit=${limit}`),
+  orders: (customerId: string) =>
+    call<{ orders: Order[] }>('orders', `${coreBase()}/orders/${encodeURIComponent(customerId)}`),
+  promise: (sku: string) => call<Promise_>('promise', `${coreBase()}/promise/${encodeURIComponent(sku)}`),
+  affinity: (subject: { customerId?: string | undefined; anonymousId?: string | undefined }) => {
+    const qs = new URLSearchParams();
+    if (subject.customerId) qs.set('customer_id', subject.customerId);
+    if (subject.anonymousId) qs.set('anonymous_id', subject.anonymousId);
+    return call<AffinityResponse>('affinity', `${collectorBase()}/v1/affinity?${qs}`, AFFINITY_BUDGET_MS);
+  },
 };
 
 /**
