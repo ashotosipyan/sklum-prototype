@@ -14,3 +14,5 @@ coverage/
 # Expo continuous native generation — regenerate with `npx expo prebuild`
 apps/mobile/ios/
 apps/mobile/android/
+
+.idea/
